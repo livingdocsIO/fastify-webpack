@@ -1,0 +1,37 @@
+{
+  "name": "@livingdocs/fastify-webpack",
+  "version": "0.0.0-placeholder",
+  "main": "index.js",
+  "keywords": [],
+  "author": "Marc Bachmann <marc.brookman@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "fastify-compress": "^0.11.0",
+    "fastify-etag": "^0.1.0",
+    "fastify-plugin": "^1.6.0",
+    "fastify-static": "^2.5.0",
+    "fastify-webpack-hmr": "^2.1.0"
+  },
+  "optionalDependencies": {
+    "fastify-webpack-hmr": "^2.1.0"
+  },
+  "directories": {
+    "example": "example"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/livingdocsIO/fastify-webpack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/livingdocsIO/fastify-webpack/issues"
+  },
+  "homepage": "https://github.com/livingdocsIO/fastify-webpack#readme",
+  "description": "",
+  "release": {
+    "extends": "@livingdocs/semantic-release-presets/npm-github-verify"
+  }
+}
