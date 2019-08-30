@@ -10,7 +10,7 @@ async function webpackPlugin (fastify, options) {
   // support a prefix `/` which would result in `///assets`
   // we can't use path.join here because we want to be cross-platform compatible
   // and this is a url, not a file system path
-  const publicPath = `/${options.prefix}/assets`.replace(/\/\/\/?/g, '/')
+  const publicPath = `/${options.prefix}/assets`.replace(/\/+/g, '/')
 
   let assetsMap
   if (!options.watch) {
@@ -84,7 +84,7 @@ async function webpackPlugin (fastify, options) {
   })
 
   const publicAssetPath = (pathname) => {
-    if (!options.cdnUrl) return pathname
+    if (!options.cdnUrl) return publicPath.replace(/assets$/, pathname)
     // make sure that the cdnUrl has always a postfix `/`
     return `${options.cdnUrl.replace(/\/?$/, '/') || ''}${pathname.replace('assets/', '')}`
   }
