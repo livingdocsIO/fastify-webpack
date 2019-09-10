@@ -5,15 +5,28 @@ const fastifyStatic = require('fastify-static')
 const fnv1a = require('fastify-etag/fnv1a')
 function generateETag (payload) { return `"${fnv1a(payload).toString(36)}"` }
 
-async function webpackPlugin (fastify, options) {
-  const distDir = options.distDir ? path.resolve(options.distDir) : path.resolve('./dist')
+function strip (str, leading, trailing) {
+  return str
+    .replace(/\/+/g, '/')
+    .replace(/^\/*/, leading ? '/' : '')
+    .replace(/\/*$/, trailing ? '/' : '')
+}
+
+async function webpackPlugin (fastify, opts) {
+  const distDir = opts.distDir
+    ? path.resolve(opts.distDir)
+    : path.resolve('./dist')
+
   // support a prefix `/` which would result in `///assets`
   // we can't use path.join here because we want to be cross-platform compatible
   // and this is a url, not a file system path
-  const publicPath = `/${options.prefix}/assets`.replace(/\/+/g, '/')
+  const publicAssetsPath = strip(`${opts.prefix}/assets`, true)
+  const defaultCdnUrl = opts.cdnUrl
+    ? opts.cdnUrl.replace(/\/?$/, '/')
+    : strip(opts.prefix, true, true)
 
   let assetsMap
-  if (!options.watch) {
+  if (!opts.watch) {
     try {
       const assetsMapPath = path.join(distDir, '.assets.json')
       const assetsMapContent = fs.readFileSync(assetsMapPath, 'utf8')
@@ -26,21 +39,21 @@ async function webpackPlugin (fastify, options) {
     }
   }
 
-  if (options.compress) fastify.register(require('fastify-compress'))
+  if (opts.compress) fastify.register(require('fastify-compress'))
 
   let fastifyStaticInitialized = false
   fastify.addHook('onRoute', (route) => {
     if (fastifyStaticInitialized) return
-    if (route.path.startsWith(publicPath)) {
-      route.config = {...route.config, static: !options.watch}
+    if (route.path.startsWith(publicAssetsPath)) {
+      route.config = {...route.config, static: !opts.watch}
     }
   })
 
   fastify.register(fastifyStatic, {
     root: distDir,
-    prefix: publicPath,
-    wildcard: options.watch,
-    maxAge: options.watch ? undefined : options.maxAge,
+    prefix: publicAssetsPath,
+    wildcard: opts.watch,
+    maxAge: opts.watch ? undefined : opts.maxAge,
     etag: true,
     lastModified: false,
     acceptRanges: false
@@ -54,7 +67,8 @@ async function webpackPlugin (fastify, options) {
     fastify.addHook('onRequest', (req, rep, done) => {
       if (!rep.context.config.static) return done()
 
-      const etag = etagCache.get(req.req.url)
+      req.cdnUrl = req.headers['x-cdn-url'] || defaultCdnUrl
+      const etag = etagCache.get(`${req.cdnUrl}${req.req.url}`)
       if (!etag) return done()
 
       rep[ETagCached] = etag
@@ -77,34 +91,34 @@ async function webpackPlugin (fastify, options) {
         rep.header('ETag', etag)
       }
 
-      if (rep.context.config.static && !rep[ETagCached]) etagCache.set(req.req.url, etag)
+      if (rep.context.config.static && !rep[ETagCached]) {
+        etagCache.set(`${req.cdnUrl}${req.req.url}`, etag)
+      }
       if (req.headers['if-none-match'] === etag) rep.code(304)
       done()
     })
   })
 
-  const publicAssetPath = (pathname) => {
-    if (!options.cdnUrl) return publicPath.replace(/assets$/, pathname)
-    // make sure that the cdnUrl has always a postfix `/`
-    return `${options.cdnUrl.replace(/\/?$/, '/') || ''}${pathname.replace('assets/', '')}`
-  }
-
-  function toAssetPath (asset) {
+  function toAssetPath (asset, cdnUrl) {
     const all = []
     const name = asset.name
 
     if (asset.type === 'style') {
-      const file = assetsMap[`${name}.scss`] || assetsMap[`${name}.css`] || assetsMap[`${name}.js`] || {} // eslint-disable-line max-len
-      if (/\.css$/.test(file.src)) all.push({type: 'style', href: publicAssetPath(file.src)})
-      else if (/\.js$/.test(file.src)) all.push({type: 'script', href: publicAssetPath(file.src)})
+      const file = assetsMap[`${name}.scss`]
+        || assetsMap[`${name}.css`]
+        || assetsMap[`${name}.js`]
+        || {}
+
+      if (/\.css$/.test(file.src)) all.push({type: 'style', href: `${cdnUrl}${file.src}`})
+      else if (/\.js$/.test(file.src)) all.push({type: 'script', href: `${cdnUrl}${file.src}`})
       else fastify.log.warn('Style asset to embed not found', name)
     } else if (asset.type === 'script') {
       const file = assetsMap[`${name}.js`]
-      if (file) all.push({type: 'script', href: publicAssetPath(file.src)})
+      if (file) all.push({type: 'script', href: `${cdnUrl}${file.src}`})
       else fastify.log.warn(`Script asset to embed not found '${name}'`)
     } else if (asset.type === 'favicon') {
       const file = assetsMap[`${name}.ico`]
-      if (file) all.push({type: 'favicon', href: publicAssetPath(file.src)})
+      if (file) all.push({type: 'favicon', href: `${cdnUrl}${file.src}`})
       else fastify.log.warn(`Favicon to embed not found '${name}'`)
     }
 
@@ -120,16 +134,16 @@ async function webpackPlugin (fastify, options) {
     })
   }
 
-  if (options.watch) {
-    const webpackConfig = options.webpackConfig || require(path.resolve('./webpack.config'))
+  if (opts.watch) {
+    const webpackConfig = opts.webpackConfig || require(path.resolve('./webpack.config'))
     fastify.register(module.parent.require('fastify-webpack-hmr'), {
       config: webpackConfig,
       webpackDev: {
         watchOptions: {
           ignored: [distDir]
         },
-        ...options.webpackDev,
-        publicPath
+        ...opts.webpackDev,
+        publicPath: publicAssetsPath
       }
     }).after((err) => {
       if (err) throw err
@@ -184,23 +198,31 @@ async function webpackPlugin (fastify, options) {
   }
 
   function webpackHtml (app) {
-    let html = !options.watch && toHtml(app)
+    const htmlByCdnUrl = {}
     return {
       config: {static: true},
-      handler (request, reply) {
-        if (options.watch) html = toHtml(app)
+      handler (req, reply) {
+        let toServe = htmlByCdnUrl[req.cdnUrl]
+        if (!toServe) {
+          if (opts.watch) {
+            toServe = toHtml(app, req.cdnUrl)
+          } else {
+            toServe = toHtml(app, req.cdnUrl)
+            htmlByCdnUrl[req.cdnUrl] = toServe
+          }
+        }
 
         reply
-          .header('Link', html.linkHeader)
+          .header('Link', toServe.linkHeader)
           .header('Cache-control', 'no-cache')
           .type('text/html')
-          .send(html.string)
+          .send(toServe.string)
       }
     }
   }
 
-  function toHtml (app) {
-    const assets = (app.assets || []).reduce((a, asset) => [...a, ...toAssetPath(asset)], [])
+  function toHtml (app, cdnUrl) {
+    const assets = (app.assets || []).reduce((a, asset) => [...a, ...toAssetPath(asset, cdnUrl)], [])
     const links = [...(app.linkHeader || []), ...assets.map(({type, ...all}) => {
       if (type === 'style') return `<${all.href}>; rel=preload; as=style`
       if (type === 'script') return `<${all.href}>; rel=preload; as=script`
@@ -232,7 +254,7 @@ async function webpackPlugin (fastify, options) {
   }
 
   function serve (filename) {
-    if (!options.watch) return (req, rep) => rep.sendFile(filename)
+    if (!opts.watch) return (req, rep) => rep.sendFile(filename)
 
     let contentType
     if (filename.endsWith('.html')) contentType = 'text/html'
@@ -257,8 +279,8 @@ const plugin = fp(webpackPlugin, {
 })
 
 let cachedClass
-plugin.assetManifest = function getAssetManifestClass (opts) {
-  return new plugin.AssetManifest(opts)
+plugin.assetManifest = function getAssetManifestClass (options) {
+  return new plugin.AssetManifest(options)
 }
 
 Object.defineProperty(plugin, 'AssetManifest', {
@@ -266,8 +288,8 @@ Object.defineProperty(plugin, 'AssetManifest', {
     if (cachedClass) return cachedClass
     const UpstreamAssetManifestPlugin = module.parent.require('webpack-assets-manifest')
     class AssetManifestPlugin {
-      constructor (opts) {
-        this.options = opts || {}
+      constructor (options) {
+        this.options = options || {}
       }
 
       apply (compiler) {
