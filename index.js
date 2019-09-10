@@ -104,10 +104,10 @@ async function webpackPlugin (fastify, opts) {
     const name = asset.name
 
     if (asset.type === 'style') {
-      const file = assetsMap[`${name}.scss`]
-        || assetsMap[`${name}.css`]
-        || assetsMap[`${name}.js`]
-        || {}
+      const file = assetsMap[`${name}.scss`] ||
+        assetsMap[`${name}.css`] ||
+        assetsMap[`${name}.js`] ||
+        {}
 
       if (/\.css$/.test(file.src)) all.push({type: 'style', href: `${cdnUrl}${file.src}`})
       else if (/\.js$/.test(file.src)) all.push({type: 'script', href: `${cdnUrl}${file.src}`})
@@ -222,7 +222,9 @@ async function webpackPlugin (fastify, opts) {
   }
 
   function toHtml (app, cdnUrl) {
-    const assets = (app.assets || []).reduce((a, asset) => [...a, ...toAssetPath(asset, cdnUrl)], [])
+    const assets = (app.assets || [])
+      .reduce((a, asset) => [...a, ...toAssetPath(asset, cdnUrl)], [])
+
     const links = [...(app.linkHeader || []), ...assets.map(({type, ...all}) => {
       if (type === 'style') return `<${all.href}>; rel=preload; as=style`
       if (type === 'script') return `<${all.href}>; rel=preload; as=script`
