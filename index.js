@@ -25,13 +25,15 @@ async function webpackPlugin (fastify, opts) {
     ? opts.cdnUrl.replace(/\/?$/, '/')
     : strip(opts.prefix, true, true)
 
-  let assetsMap
+  const assetsMap = {}
+  fastify.decorate('assets', assetsMap)
+
   if (!opts.watch) {
     try {
       const assetsMapPath = path.join(distDir, '.assets.json')
-      const assetsMapContent = fs.readFileSync(assetsMapPath, 'utf8')
-      assetsMap = JSON.parse(assetsMapContent)
-      fastify.decorate('assets', assetsMap)
+      const assetsMapContent = JSON.parse(fs.readFileSync(assetsMapPath, 'utf8'))
+      for (const key in assetsMap) delete assetsMap[key]
+      Object.assign(assetsMap, assetsMapContent)
     } catch (err) {
       fastify.log.error({err}, `Assets weren't built yet, stopping server.`)
       process.exit(1)
@@ -148,23 +150,20 @@ async function webpackPlugin (fastify, opts) {
     }).after((err) => {
       if (err) throw err
 
+      let hasCompiled = false
       const compiled = new Promise((resolve, reject) => {
         fastify.webpack.compiler.hooks.afterEmit.tap('WebpackDevMiddleware', (compilation) => {
-          if (!assetsMap) resolve()
+          if (!hasCompiled) resolve()
+          hasCompiled = true
 
           const newAssetsMap = JSON.parse(compilation.assets['.assets.json']._value)
-          if (!assetsMap) {
-            assetsMap = newAssetsMap
-            fastify.decorate('assets', assetsMap)
-          } else {
-            for (const key in assetsMap) delete assetsMap[key]
-            Object.assign(assetsMap, newAssetsMap)
-          }
+          for (const key in assetsMap) delete assetsMap[key]
+          Object.assign(assetsMap, newAssetsMap)
         })
       })
 
       fastify.use((req, reply, next) => {
-        if (assetsMap) return next()
+        if (hasCompiled) return next()
         compiled.then(() => next())
       })
     })
