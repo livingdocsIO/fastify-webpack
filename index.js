@@ -137,34 +137,33 @@ async function webpackPlugin (fastify, opts) {
   }
 
   if (opts.watch) {
-    const webpackConfig = opts.webpackConfig || require(path.resolve('./webpack.config'))
-    fastify.register(module.parent.require('fastify-webpack-hmr'), {
-      config: webpackConfig,
-      webpackDev: {
-        watchOptions: {
-          ignored: [distDir]
-        },
-        ...opts.webpackDev,
-        publicPath: publicAssetsPath
-      }
-    }).after((err) => {
-      if (err) throw err
+    let compiledPromise = new Promise((resolve) => {
+      fastify.addHook('onRequest', (req, rep, next) => {
+        if (!compiledPromise) return next()
+        compiledPromise.then(() => next())
+      })
 
-      let hasCompiled = false
-      const compiled = new Promise((resolve) => {
+      const webpackConfig = opts.webpackConfig || require(path.resolve('./webpack.config'))
+      fastify.register(module.parent.require('fastify-webpack-hmr'), {
+        config: webpackConfig,
+        webpackDev: {
+          watchOptions: {
+            ignored: [distDir]
+          },
+          ...opts.webpackDev,
+          publicPath: publicAssetsPath
+        }
+      }).after((err) => {
+        if (err) throw err
+
         fastify.webpack.compiler.hooks.afterEmit.tap('WebpackDevMiddleware', (compilation) => {
-          if (!hasCompiled) resolve()
-          hasCompiled = true
-
           const newAssetsMap = JSON.parse(compilation.assets['.assets.json']._value)
           for (const key in assetsMap) delete assetsMap[key]
           Object.assign(assetsMap, newAssetsMap)
-        })
-      })
 
-      fastify.addHook('onRequest', async () => {
-        if (hasCompiled) return
-        await compiled
+          if (compiledPromise) resolve()
+          compiledPromise = undefined
+        })
       })
     })
   }
