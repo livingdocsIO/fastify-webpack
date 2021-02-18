@@ -70,7 +70,7 @@ async function webpackPlugin (fastify, opts) {
       if (!rep.context.config.static) return done()
 
       req.cdnUrl = req.headers['x-cdn-url'] || defaultCdnUrl
-      const etag = etagCache.get(`${req.cdnUrl}${req.req.url}`)
+      const etag = etagCache.get(`${req.cdnUrl}${req.raw.url}`)
       if (!etag) return done()
 
       rep[ETagCached] = etag
@@ -94,7 +94,7 @@ async function webpackPlugin (fastify, opts) {
       }
 
       if (rep.context.config.static && !rep[ETagCached]) {
-        etagCache.set(`${req.cdnUrl}${req.req.url}`, etag)
+        etagCache.set(`${req.cdnUrl}${req.raw.url}`, etag)
       }
       if (req.headers['if-none-match'] === etag) rep.code(304)
       done()
@@ -151,7 +151,7 @@ async function webpackPlugin (fastify, opts) {
       if (err) throw err
 
       let hasCompiled = false
-      const compiled = new Promise((resolve, reject) => {
+      const compiled = new Promise((resolve) => {
         fastify.webpack.compiler.hooks.afterEmit.tap('WebpackDevMiddleware', (compilation) => {
           if (!hasCompiled) resolve()
           hasCompiled = true
@@ -162,9 +162,9 @@ async function webpackPlugin (fastify, opts) {
         })
       })
 
-      fastify.use((req, reply, next) => {
-        if (hasCompiled) return next()
-        compiled.then(() => next())
+      fastify.addHook('onRequest', async () => {
+        if (hasCompiled) return
+        await compiled
       })
     })
   }
@@ -275,7 +275,7 @@ async function webpackPlugin (fastify, opts) {
 }
 
 const plugin = fp(webpackPlugin, {
-  fastify: '2.x',
+  fastify: '3.x',
   name: '@livingdocs/fastify-webpack'
 })
 
