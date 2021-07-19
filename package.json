@@ -12,7 +12,7 @@
     "fastify-static": "^3.4.0"
   },
   "peerDependencies": {
-    "fastify-webpack-hmr": "^3.0.0"
+    "fastify-webpack-hmr": "*"
   },
   "peerDependenciesMeta": {
     "fastify-webpack-hmr": {
