@@ -144,7 +144,9 @@ async function webpackPlugin (fastify, opts) {
       })
 
       const webpackConfig = opts.webpackConfig || require(path.resolve('./webpack.config'))
-      fastify.register(module.parent.require('fastify-webpack-hmr'), {
+      const isWebpack4 = module.parent.require('webpack/package.json').version[0] === '4'
+
+      fastify.register(module.parent.require('fastify-webpack-hmr'), isWebpack4 ? {
         config: webpackConfig,
         webpackDev: {
           watchOptions: {
@@ -153,17 +155,35 @@ async function webpackPlugin (fastify, opts) {
           ...opts.webpackDev,
           publicPath: publicAssetsPath
         }
+      } : {
+        config: {
+          ...webpackConfig,
+          watchOptions: {
+            ignored: [distDir]
+          }
+        },
+        webpackDev: {
+          ...opts.webpackDev,
+          publicPath: publicAssetsPath
+        }
       }).after((err) => {
         if (err) throw err
+        fastify.webpack.compiler.hooks.assetEmitted
+          .tap('FastifyWebpackPlugin', (filePath, asset) => {
+            if (filePath !== '.assets.json') return
+            const newAssetsMap = JSON.parse((isWebpack4 ? asset : asset.content).toString('utf8'))
+            for (const key in assetsMap) delete assetsMap[key]
+            Object.assign(assetsMap, newAssetsMap)
+          })
 
-        fastify.webpack.compiler.hooks.afterEmit.tap('WebpackDevMiddleware', (compilation) => {
-          const newAssetsMap = JSON.parse(compilation.assets['.assets.json']._value)
-          for (const key in assetsMap) delete assetsMap[key]
-          Object.assign(assetsMap, newAssetsMap)
-
-          if (compiledPromise) resolve()
-          compiledPromise = undefined
-        })
+        fastify.webpack.compiler.hooks[isWebpack4 ? 'done' : 'afterDone']
+          .tap('webpack-dev-middleware', () => {
+            if (!compiledPromise) return
+            process.nextTick(() => {
+              resolve()
+              compiledPromise = undefined
+            })
+          })
       })
     })
   }
