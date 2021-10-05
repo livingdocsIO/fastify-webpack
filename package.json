@@ -9,7 +9,7 @@
     "fastify-compress": "^3.4.1",
     "fastify-etag": "^2.1.0",
     "fastify-plugin": "^3.0.0",
-    "fastify-static": "^3.4.0"
+    "fastify-static": "^4.2.4"
   },
   "peerDependencies": {
     "fastify-webpack-hmr": "*"
