@@ -8,7 +8,7 @@
   "dependencies": {
     "fastify-compress": "^3.4.1",
     "fastify-plugin": "^3.0.0",
-    "fastify-static": "^3.4.0"
+    "fastify-static": "^4.4.1"
   },
   "peerDependencies": {
     "fastify-webpack-hmr": "*"
