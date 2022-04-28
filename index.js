@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const fp = require('fastify-plugin')
 const fastifyStatic = require('fastify-static')
-const fnv1a = require('fastify-etag/fnv1a')
+const fnv1a = require('./fnv1a')
 function generateETag (payload) { return `"${fnv1a(payload).toString(36)}"` }
 
 function strip (str, leading, trailing) {

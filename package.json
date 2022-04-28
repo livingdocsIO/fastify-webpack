@@ -7,7 +7,6 @@
   "license": "MIT",
   "dependencies": {
     "fastify-compress": "^3.4.1",
-    "fastify-etag": "^2.1.0",
     "fastify-plugin": "^3.0.0",
     "fastify-static": "^3.4.0"
   },
@@ -22,7 +21,6 @@
   "directories": {
     "example": "example"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
