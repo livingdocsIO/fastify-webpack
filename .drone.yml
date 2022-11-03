@@ -13,7 +13,7 @@ steps:
       from_secret: GH_TOKEN
 
 - name: release
-  image: livingdocs/semantic-release:v1.0.0
+  image: livingdocs/semantic-release:v2.1.1
   environment:
     GH_TOKEN:
       from_secret: GH_TOKEN
@@ -24,6 +24,6 @@ trigger:
   event: [push]
 ---
 kind: signature
-hmac: 3c6080e76c3d0b616338af74cda029e8f8eb2aa601a50b4664b32694d8c89da0
+hmac: 7aded0eabaf0ea1eab9a112019a7a85b5724914397d59e627605dd87935efd32
 
 ...
