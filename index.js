@@ -1,7 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const fp = require('fastify-plugin')
-const fastifyStatic = require('fastify-static')
+const fastifyStatic = require('@fastify/static')
 const fnv1a = require('./fnv1a')
 function generateETag (payload) { return `"${fnv1a(payload).toString(36)}"` }
 
@@ -41,7 +41,7 @@ async function webpackPlugin (fastify, opts) {
     }
   }
 
-  if (opts.compress) fastify.register(require('fastify-compress'))
+  if (opts.compress) fastify.register(require('@fastify/compress'))
 
   let fastifyStaticInitialized = false
   fastify.addHook('onRoute', (route) => {
@@ -294,7 +294,7 @@ async function webpackPlugin (fastify, opts) {
 }
 
 const plugin = fp(webpackPlugin, {
-  fastify: '3.x',
+  fastify: '4.x',
   name: '@livingdocs/fastify-webpack'
 })
 
