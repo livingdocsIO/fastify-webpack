@@ -67,7 +67,7 @@ async function webpackPlugin (fastify, opts) {
     const ETagCached = Symbol('ETagCached')
     const ETagMatched = Symbol('ETagMatched')
     fastify.addHook('onRequest', (req, rep, done) => {
-      if (!rep.context.config.static) return done()
+      if (!req.routeOptions.config.static) return done()
 
       req.cdnUrl = req.headers['x-cdn-url'] || defaultCdnUrl
       const etag = etagCache.get(`${req.cdnUrl}${req.raw.url}`)
@@ -93,7 +93,7 @@ async function webpackPlugin (fastify, opts) {
         rep.header('ETag', etag)
       }
 
-      if (rep.context.config.static && !rep[ETagCached]) {
+      if (req.routeOptions.config.static && !rep[ETagCached]) {
         etagCache.set(`${req.cdnUrl}${req.raw.url}`, etag)
       }
       if (req.headers['if-none-match'] === etag) rep.code(304)
