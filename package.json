@@ -6,9 +6,9 @@
   "author": "Marc Bachmann <marc.brookman@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@fastify/compress": "^6.1.1",
-    "@fastify/static": "^6.5.0",
-    "fastify-plugin": "^4.3.0"
+    "@fastify/compress": "^6.4.0",
+    "@fastify/static": "^6.11.2",
+    "fastify-plugin": "^4.5.1"
   },
   "peerDependencies": {
     "fastify-webpack-hmr": "*"
