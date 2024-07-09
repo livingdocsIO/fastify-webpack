@@ -143,6 +143,7 @@ async function webpackPlugin (fastify, opts) {
         compiledPromise.then(() => next())
       })
 
+      const webpackHot = opts.webpackHot
       const webpackConfig = opts.webpackConfig || require(path.resolve('./webpack.config'))
       const isWebpack4 = module.parent.require('webpack/package.json').version[0] === '4'
 
@@ -154,7 +155,8 @@ async function webpackPlugin (fastify, opts) {
           },
           ...opts.webpackDev,
           publicPath: publicAssetsPath
-        }
+        },
+        webpackHot
       } : {
         config: {
           ...webpackConfig,
@@ -165,7 +167,8 @@ async function webpackPlugin (fastify, opts) {
         webpackDev: {
           ...opts.webpackDev,
           publicPath: publicAssetsPath
-        }
+        },
+        webpackHot
       }).after((err) => {
         if (err) throw err
         fastify.webpack.compiler.hooks.assetEmitted
