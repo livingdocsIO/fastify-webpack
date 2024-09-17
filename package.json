@@ -6,8 +6,8 @@
   "author": "Marc Bachmann <marc.brookman@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@fastify/compress": "^6.4.0",
-    "@fastify/static": "^6.11.2",
+    "@fastify/compress": "^7.0.3",
+    "@fastify/static": "^7.0.4",
     "fastify-plugin": "^4.5.1"
   },
   "peerDependencies": {
