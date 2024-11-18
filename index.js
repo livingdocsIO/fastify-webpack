@@ -145,25 +145,16 @@ async function webpackPlugin (fastify, opts) {
 
       const webpackHot = opts.webpackHot
       const webpackConfig = opts.webpackConfig || require(path.resolve('./webpack.config'))
-      const isWebpack4 = module.parent.require('webpack/package.json').version[0] === '4'
+      const extendedWebpackConfig = {
+        ...webpackConfig,
+        watchOptions: {
+          ignored: [distDir]
+        }
+      }
 
-      fastify.register(module.parent.require('fastify-webpack-hmr'), isWebpack4 ? {
-        config: webpackConfig,
-        webpackDev: {
-          watchOptions: {
-            ignored: [distDir]
-          },
-          ...opts.webpackDev,
-          publicPath: publicAssetsPath
-        },
-        webpackHot
-      } : {
-        config: {
-          ...webpackConfig,
-          watchOptions: {
-            ignored: [distDir]
-          }
-        },
+      fastify.register(module.parent.require('fastify-webpack-hmr'), {
+        compiler: opts.webpack ? opts.webpack(extendedWebpackConfig) : undefined,
+        config: opts.webpack ? undefined : extendedWebpackConfig,
         webpackDev: {
           ...opts.webpackDev,
           publicPath: publicAssetsPath
@@ -174,12 +165,12 @@ async function webpackPlugin (fastify, opts) {
         fastify.webpack.compiler.hooks.assetEmitted
           .tap('FastifyWebpackPlugin', (filePath, asset) => {
             if (filePath !== '.assets.json') return
-            const newAssetsMap = JSON.parse((isWebpack4 ? asset : asset.content).toString('utf8'))
+            const newAssetsMap = JSON.parse((asset.content).toString('utf8'))
             for (const key in assetsMap) delete assetsMap[key]
             Object.assign(assetsMap, newAssetsMap)
           })
 
-        fastify.webpack.compiler.hooks[isWebpack4 ? 'done' : 'afterDone']
+        fastify.webpack.compiler.hooks['afterDone']
           .tap('webpack-dev-middleware', () => {
             if (!compiledPromise) return
             process.nextTick(() => {
@@ -297,7 +288,7 @@ async function webpackPlugin (fastify, opts) {
 }
 
 const plugin = fp(webpackPlugin, {
-  fastify: '4.x',
+  fastify: '5.x',
   name: '@livingdocs/fastify-webpack'
 })
 
