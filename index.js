@@ -300,7 +300,12 @@ plugin.assetManifest = function getAssetManifestClass (options) {
 Object.defineProperty(plugin, 'AssetManifest', {
   get () {
     if (cachedClass) return cachedClass
-    const UpstreamAssetManifestPlugin = module.parent.require('webpack-assets-manifest')
+
+    let UpstreamAssetManifestPlugin = module.parent.require('webpack-assets-manifest')
+    if (UpstreamAssetManifestPlugin.WebpackAssetsManifest) {
+      UpstreamAssetManifestPlugin = UpstreamAssetManifestPlugin.WebpackAssetsManifest
+    }
+
     class AssetManifestPlugin {
       constructor (options) {
         this.options = options || {}
