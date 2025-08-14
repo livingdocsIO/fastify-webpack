@@ -277,6 +277,7 @@ async function webpackPlugin (fastify, opts) {
     if (filename.endsWith('.ico')) contentType = 'image/x-icon'
     if (filename.endsWith('.txt')) contentType = 'text/plain'
     if (filename.endsWith('.css')) contentType = 'text/css'
+    if (filename.endsWith('.svg')) contentType = 'image/svg+xml'
 
     const filepath = path.join(distDir, filename)
     return function (req, rep) {
