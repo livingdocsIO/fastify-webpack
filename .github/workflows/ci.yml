@@ -6,13 +6,10 @@
 # and marcbachmann/relcut, pinned to commit SHAs.
 #
 # The release publishes to npm with relcut and npm trusted publishing (OIDC,
-# `id-token: write`), so no npm publish token is stored anywhere. It needs:
-# - npmjs.com, package settings of @livingdocs/fastify-webpack, Trusted
-#   publishing: GitHub Actions, organization livingdocsIO, repository
-#   fastify-webpack, workflow ci.yml.
-# - Repository variable GHA_RELEASE_ENABLED=true. Until it is set, the release
-#   job is skipped, so it never publishes alongside the Drone release step.
-#   Remove the release step from .drone.yml when setting it.
+# `id-token: write`), so no npm publish token is stored anywhere. It needs
+# npmjs.com, package settings of @livingdocs/fastify-webpack, Trusted
+# publishing: GitHub Actions, organization livingdocsIO, repository
+# fastify-webpack, workflow ci.yml.
 name: CI
 
 on:
@@ -63,7 +60,7 @@ jobs:
   release:
     name: Release
     needs: eslint
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.GHA_RELEASE_ENABLED == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: self-hosted
     timeout-minutes: 30
     concurrency:
