@@ -3,6 +3,11 @@
 # It needs npmjs.com, package settings of @livingdocs/fastify-webpack, Trusted
 # publishing: GitHub Actions, organization livingdocsIO, repository
 # fastify-webpack, workflow release.yml.
+#
+# The publish job runs on a GitHub-hosted runner: the package and repository
+# are public, so npm adds provenance, and npm generates provenance only on
+# GitHub-hosted runners. relcut pushes the tag before it publishes, so a
+# self-hosted runner could leave a tag without an npm version.
 name: Release
 
 on:
@@ -19,7 +24,7 @@ permissions:
 jobs:
   publish:
     name: Publish
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
       group: release
