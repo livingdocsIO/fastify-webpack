@@ -1,0 +1,43 @@
+# Publishes @livingdocs/fastify-webpack to npm with relcut and npm trusted
+# publishing (OIDC, `id-token: write`), so no npm publish token is stored.
+# It needs npmjs.com, package settings of @livingdocs/fastify-webpack, Trusted
+# publishing: GitHub Actions, organization livingdocsIO, repository
+# fastify-webpack, workflow release.yml.
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  actions: read
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: self-hosted
+    timeout-minutes: 30
+    concurrency:
+      group: release
+      queue: max
+      cancel-in-progress: false
+
+    steps:
+      - uses: livingdocsIO/actions/wait-for-workflow@0bc5eab38b93cf312e0c0fb4b11227a29ddadc35
+        timeout-minutes: 25
+        with:
+          workflow: lint.yml
+          job: Style
+
+      - uses: livingdocsIO/actions/checkout@0bc5eab38b93cf312e0c0fb4b11227a29ddadc35
+      - uses: livingdocsIO/actions/setup-node@0bc5eab38b93cf312e0c0fb4b11227a29ddadc35
+        with: { node-version: "26" }
+
+      - uses: livingdocsIO/actions/relcut@0bc5eab38b93cf312e0c0fb4b11227a29ddadc35
+        with:
+          branches: master
+          publish: npm

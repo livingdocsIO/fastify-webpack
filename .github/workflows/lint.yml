@@ -1,0 +1,23 @@
+name: Lint
+
+on:
+  push:
+    branches: ["**"]
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+permissions:
+  contents: read
+
+jobs:
+  style:
+    name: Style
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - uses: livingdocsIO/actions/checkout@0bc5eab38b93cf312e0c0fb4b11227a29ddadc35
+      # Same image and default command as the former Drone eslint step.
+      - name: ESLint
+        run: docker run --rm -v "$PWD:/drone/src" -w /drone/src marcbachmann/eslint:4.19.1
