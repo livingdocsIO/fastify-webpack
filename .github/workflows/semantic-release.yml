@@ -1,0 +1,26 @@
+name: Lint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: semantic-release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  commits:
+    name: Commit Messages
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - uses: livingdocsIO/actions/checkout@0bc5eab38b93cf312e0c0fb4b11227a29ddadc35
+      - uses: livingdocsIO/actions/relcut@0bc5eab38b93cf312e0c0fb4b11227a29ddadc35
+        with:
+          branches: master
+          command: check
+          check-run-id: ${{ job.check_run_id }}
